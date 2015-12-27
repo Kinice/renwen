@@ -1,0 +1,319 @@
+<?php
+require_once '../include.php';
+checkLogined();
+function showPaget($page,$totalPage,$where=null,$sep="&nbsp;",$i=null){
+	$where=($where==null)?null:"&".$where;
+	$url = $_SERVER ['PHP_SELF']."?content=pro";
+	$index = ($page == 1) ? "首页" : "<a href='{$url}&page=1{$where}'>首页</a>";
+	$last = ($page == $totalPage) ? "尾页" : "<a href='{$url}&page={$totalPage}{$where}'>尾页</a>";
+	$prevPage=($page>=1)?$page-1:1;
+	$nextPage=($page>=$totalPage)?$totalPage:$page+1;
+	$prev = ($page == 1) ? "上一页" : "<a href='{$url}&page={$prevPage}{$where}'>上一页</a>";
+	$next = ($page == $totalPage) ? "下一页" : "<a href='{$url}&page={$nextPage}{$where}'>下一页</a>";
+	$str = "总共{$totalPage}页/当前是第{$page}页";
+	$p = "";
+	for($i = 1; $i <= $totalPage; $i ++) {
+		//当前页无连接
+		
+		if ($page == $i) {
+			$p .= "[{$i}]";
+		} else {
+			$p .= "<a href='{$url}&page={$i}{$where}'>[{$i}]</a>";
+		}
+	}
+ 	$pageStr=$str.$sep . $index .$sep. $prev.$sep . $p.$sep . $next.$sep . $last;
+ 	return $pageStr;
+}
+
+if (isset($_REQUEST['id'])) {
+	$id = $_REQUEST['id'];
+	if ($id != 1)
+		$where = " where id=".$id;
+	else
+		$where = null;
+} else {
+	$id = null;
+	$where = null;
+}
+
+if (isset($_REQUEST['page']))
+	$page=$_REQUEST['page']?(int)$_REQUEST['page']:1;
+else
+	$page = 1;
+$sql="select id,username,logincouts from admin".$where;
+$totalRows=getResultNum($sql);
+$pageSize=7;
+$totalPage=ceil($totalRows/$pageSize);
+if($page<1||$page==null||!is_numeric($page))$page=1;
+if($page>=$totalPage)$page=$totalPage;
+$offset=($page-1)*$pageSize;
+$sql = "select * from admin".$where." limit {$offset},{$pageSize}";
+$rows = fetchAll($sql);
+?>
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>管理员列表</title>
+<link rel="stylesheet" href="styles/backstage.css">
+<link rel="stylesheet" href="scripts/jquery-ui/css/ui-lightness/jquery-ui-1.10.4.custom.css" />
+<script src="scripts/jquery-ui/js/jquery-1.10.2.js"></script>
+<script src="scripts/jquery-ui/js/jquery-ui-1.10.4.custom.js"></script>
+<script src="scripts/jquery-ui/js/jquery-ui-1.10.4.custom.min.js"></script>
+</head>
+
+<body>
+<div class="details">
+                    <div class="details_operation clearfix">
+                        <div class="bui_select">
+                        	<?php
+                        		if ($_SESSION['adminKind'] == 1) :
+                        	?>
+                            <input type="button" value="添&nbsp;&nbsp;加" class="add"  onclick="addAdmin()">
+                        	<?php
+								endif;
+                        	?>
+                        </div>
+                            
+                    </div>
+                    <!--表格-->
+               
+                    <table class="table" cellspacing="0" cellpadding="0">
+                        <thead>
+                            <tr>
+                                <th width="10%">编号</th>
+                                <th width="20%">管理员账号</th>                               
+                                <th width="20%">管理员类型</th>
+                                <th width="10%">登陆次数</th>
+                                <th>操作</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                       
+                        	<?php 
+                        	if (!$rows) {
+                        		echo "没有管理员！";
+                        	} else {
+                        		foreach($rows as $row):?>
+                            <tr>
+                                <!--这里的id和for里面的c1 需要循环出来-->
+                                <td><?php echo $row['id'];?></td>
+                                <td><?php echo $row['username'];?></td>
+                                
+                                <td><?php 
+										if ($row['kind'] == 1) {
+											echo "超级管理员";
+										} else if ($row['kind'] == 2) {
+											echo "新闻管理员";
+										} else if ($row['kind'] == 3) {
+											echo "师资队伍管理员";
+										} else if ($row['kind'] == 4) {
+											echo "人才培养管理员";
+										} else if ($row['kind'] == 5) {
+											echo "学科建设管理员";
+										} else if ($row['kind'] == 6) {
+											echo "学生天地管理员";
+										} 
+/*
+										if ($row['kind'] == 1) {
+											echo "超级管理员";
+										} else if ($row['kind'] == 2) {
+											echo "学院要闻栏目管理员";
+										} else if ($row['kind'] == 3) {
+											echo "通知公告栏目管理员";
+										} else if ($row['kind'] == 4) {
+											echo "本科教学栏目管理员";
+										} else if ($row['kind'] == 5) {
+											echo "研究生教学栏目管理员";
+										} else if ($row['kind'] == 6) {
+											echo "学术科研栏目管理员";
+										} else if ($row['kind'] == 7) {
+											echo "学生管理栏目管理员";
+										} else if ($row['kind'] == 8) {
+											echo "招聘管理栏目管理员";
+										} else if ($row['kind'] == 9) {
+											echo "活动掠影栏目管理员";
+										} else if ($row['kind'] == 10) {
+											echo "院办刊物栏目管理员";
+										} else if ($row['kind'] == 11) {
+											echo "继续教育栏目管理员";
+										} 
+*/
+									?></td>
+								
+                                <td><?php echo $row['logincouts'];?></td>
+                                <td align="center">
+                                				<input type="button" value="详情" class="btn" onclick="showDetail(<?php echo $row['id'];?>,'<?php echo $row['username'];?>')"><input onclick="editAdmin(<?php echo $row['id'];?>)" type="button" value="修改" class="btn"  >
+                                				<?php
+                                					if ($id == null) {
+                                				?>
+                                				<input onclick="delAdmin(<?php echo $row['id'];?>)" type="button" value="删除" class="btn">
+					                            <?php
+													}
+					                            ?>
+					                            <div id="showDetail<?php echo $row['id'];?>" style="display:none;">
+					                        	<table class="table" cellspacing="0" cellpadding="0">
+					                        		<tr>
+					                        			<td width="20%" align="right">管理员编号</td>
+					                        			<td><?php echo $row['id'];?></td>
+					                        		</tr>
+					                        		<tr>
+					                        			<td width="20%"  align="right">管理员账号</td>
+					                        			<td><?php echo $row['username'];?></td>
+					                        		</tr>
+					                        		<tr>
+					                        			<td width="20%"  align="right">管理员名称</td>
+					                        			<td><?php 
+																if ($row['nickname'] == '') {
+																	echo "NULL";
+																} else {
+																	echo $row['nickname'];
+																}
+															?></td>
+					                        		</tr>
+					                        		<tr>
+					                        			<td width="20%"  align="right">管理员类型</td>
+					                        			<td><?php 
+																if ($row['kind'] == 1) {
+																	echo "超级管理员";
+																} else if ($row['kind'] == 2) {
+																	echo "新闻管理员";
+																} else if ($row['kind'] == 3) {
+																	echo "师资队伍管理员";
+																} else if ($row['kind'] == 4) {
+																	echo "人才培养管理员";
+																} else if ($row['kind'] == 5) {
+																	echo "学科建设管理员";
+																} else if ($row['kind'] == 6) {
+																	echo "学生天地管理员";
+																} 
+/*
+																if ($row['kind'] == 1) {
+																	echo "超级管理员";
+																} else if ($row['kind'] == 2) {
+																	echo "人文风采栏目管理员";
+																} else if ($row['kind'] == 3) {
+																	echo "通知公告栏目管理员";
+																} else if ($row['kind'] == 4) {
+																	echo "本科教学栏目管理员";
+																} else if ($row['kind'] == 5) {
+																	echo "研究生教学栏目管理员";
+																} else if ($row['kind'] == 6) {
+																	echo "学术科研栏目管理员";
+																} else if ($row['kind'] == 7) {
+																	echo "学生管理栏目管理员";
+																} else if ($row['kind'] == 8) {
+																	echo "招聘管理栏目管理员";
+																} else if ($row['kind'] == 9) {
+																	echo "活动掠影栏目管理员";
+																} else if ($row['kind'] == 10) {
+																	echo "院办刊物栏目管理员";
+																} else if ($row['kind'] == 11) {
+																	echo "继续教育栏目管理员";
+																}
+*/
+															?></td>
+					                        		</tr>
+					                        		<tr>
+					                        			<td  width="20%"  align="right">电子邮箱</td>
+					                        			<td><?php
+							                        			if ($row['email'] == '') {
+																	echo "NULL";
+																} else {
+																	echo $row['email'];
+																}
+															?></td>
+					                        		</tr>
+					                        		<tr>
+					                        			<td  width="20%"  align="right">注册时间</td>
+					                        			<td><?php echo $row['regTime'];?></td>
+					                        		</tr>
+					                        		<tr>
+					                        			<td width="20%"  align="right">登录次数</td>
+					                        			<td><?php echo $row['logincouts'];?></td>
+					                        		</tr>
+					                        		<tr>
+					                        			<td width="20%"  align="right">发布文章数量</td>
+					                        			<td><?php echo $row['publishcouts'];?></td>
+					                        		</tr>
+					                        		<tr>
+					                        			<td width="20%"  align="right">最后登陆时间</td>
+					                        			<td><?php echo $row['loginlast'];?></td>
+					                        		</tr>
+					                        		<tr>
+					                        			<td width="20%"  align="right">最后登陆IP</td>
+					                        			<td><?php 
+					                        					if ($row['loginip'] == '') {
+																	echo "该管理员还没有登陆过";
+																} else {
+																	echo $row['loginip'];
+																}
+					                        				?></td>
+					                        		</tr>
+					                        	</table>
+					                        </div>
+                                
+                                </td>
+                            </tr>
+                            <?php endforeach;
+							}
+                            ?>
+                            <?php if($totalRows>$pageSize):?>
+                            <tr>
+                            	<td colspan="5"><?php echo showPage($page, $totalPage);?></td>
+                            </tr>
+                            <?php endif;?>
+                        </tbody>
+                    </table>
+                </div>
+<script type="text/javascript">
+function showDetail(id,t){
+	$("#showDetail"+id).dialog({
+		  height:"auto",
+	      width: "auto",
+	      position: {my: "center", at: "center",  collision:"fit"},
+	      modal:false,//是否模式对话框
+	      draggable:true,//是否允许拖拽
+	      resizable:true,//是否允许拖动
+	      title:"管理员详情："+t,//对话框标题
+	      show:"slide",
+	      hide:"explode"
+	});
+}
+	function addPro(){
+		window.location='addPro.php';
+	}
+	function editPro(id){
+		window.location='editPro.php?id='+id;
+	}
+	function delPro(id){
+		if(window.confirm("您确认要删除嘛？添加一次不易，且删且珍惜!")){
+			window.location="doAdminAction.php?act=delPro&id="+id;
+		}
+	}
+	function search(){
+		if(event.keyCode==13){
+			var val=document.getElementById("search").value;
+			window.location="listPro.php?keywords="+val;
+		}
+	}
+	function change(val){
+		window.location="listPro.php?order="+val;
+	}
+</script>
+</body>
+<script type="text/javascript">
+
+	function addAdmin(){
+		window.location="addAdmin.php";	
+	}
+	function editAdmin(id){
+			window.location="editAdmin.php?id="+id;
+	}
+	function delAdmin(id){
+			if(window.confirm("您确定要删除吗？删除之后不可以恢复哦！！！")){
+				window.location="doAdminAction.php?act=delAdmin&id="+id;
+			}
+	}
+</script>
+</html>
